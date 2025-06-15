@@ -1,0 +1,135 @@
+<% var userType = isNotBlank(parameter.userType)?parameter.userType:'employee'; %>
+<% layout('/layouts/default.html', {title: '二级管理员', libs: ['dataGrid']}){ %>
+<div class="main-content">
+	<div class="box box-main">
+		<div class="box-header">
+			<div class="box-title">
+				<i class="fa icon-user-female"></i> ${text('二级管理员')}
+			</div>
+			<div class="box-tools pull-right">
+				<a href="#" class="btn btn-default" id="btnSearch" title="${text('查询')}"><i class="fa fa-filter"></i> ${text('查询')}</a>
+				<a href="#" class="btn btn-primary" id="btnAddAdmin" title="${text('新增')}"><i class="fa fa-plus"></i> ${text('新增')}</a>
+				<a href="#" class="btn-setting" id="btnSetting" title="${text('设置')}"><i class="fa icon-settings"></i></a>
+			</div>
+		</div>
+		<div class="box-body">
+			<div class="alert alert-dismissible callout callout-info ml10 mr10 mt10 hide" id="alert">
+				<button type="button" class="close" data-dismiss="alert" id="alertClose">×</button>
+				<p><i class="icon fa fa-info"></i> 二级管理员是系统管理员的下级管理员，其控制权限类型包括：
+                    （1）拥有的权限：您的上级给您分配什么权限，您就能看什么数据，包括您所属机构及下级数据或其它树形结构数据的本级及下级数据；
+                    （2）管理的权限：您能将某些数据的权限分配给他人，但自己没有该数据的读取权限，一般用于管理者身份的权限控制。
+                    当前控制权限类型为：${ctrlPermi == '1' ? '拥有' : '管理'}的权限，可在后端配置文件修改 user.adminCtrlPermi 参数更改类型。</p>
+			</div>
+			<#form:form id="searchForm" model="${user}" action="${ctx}/sys/secAdmin/listData" method="post" class="form-inline "
+					data-page-no="${parameter.pageNo}" data-page-size="${parameter.pageSize}" data-order-by="${parameter.orderBy}">
+				<div class="form-group">
+					<label class="control-label">${text('账号')}：</label>
+					<div class="control-inline">
+						<#form:input path="loginCode" maxlength="100" class="form-control width-90"/>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label">${text('昵称')}：</label>
+					<div class="control-inline">
+						<#form:input path="userName" maxlength="100" class="form-control width-90"/>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label">${text('邮箱')}：</label>
+					<div class="control-inline">
+						<#form:input path="email" maxlength="300" class="form-control width-90"/>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label">${text('手机')}：</label>
+					<div class="control-inline">
+						<#form:input path="mobile" maxlength="100" class="form-control width-90"/>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label">${text('电话')}：</label>
+					<div class="control-inline">
+						<#form:input path="phone" maxlength="100" class="form-control width-90"/>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label">${text('状态')}：</label>
+					<div class="control-inline width-90">
+						<#form:select path="status" dictType="sys_user_status" blankOption="true" class="form-control isQuick"/>
+					</div>
+				</div>
+				<div class="form-group">
+					<button type="submit" class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-search"></i> ${text('查询')}</button>
+					<button type="reset" class="btn btn-default btn-sm isQuick"><i class="glyphicon glyphicon-repeat"></i> ${text('重置')}</button>
+				</div>
+			</#form:form>			
+			<table id="dataGrid"></table>
+			<div id="dataGridPage"></div>
+		</div>
+	</div>
+</div>
+<div class="hide"><#form:listselect id="userSelect" title="${text('用户选择')}"
+	url="${ctx}/sys/user/userSelect?userType=${userType}" allowClear="false" 
+	checkbox="false" itemCode="userCode" itemName="userName"/></div>
+<% } %>
+<script>
+var days = 1000 * 60 * 60 * 24;
+var lastClosedTime = js.cookie('jeesite-alert-time-sec-admin');
+if (!lastClosedTime || (new Date().getTime() - Number(lastClosedTime)) / days >= 100){
+	$('#alert').removeClass('hide');
+}
+$('#alertClose').click(function(){
+	$('#alert').addClass('hide');
+	js.cookie('jeesite-alert-time-sec-admin', new Date().getTime(), {expires:100});
+	$(window).resize();
+});
+//# // 初始化DataGrid对象
+$('#dataGrid').dataGrid({
+	searchForm: $('#searchForm'),
+	columnModel: [
+		{header:'${text("登录账号")}', name:'loginCode', index:'a.login_code', width:200, align:"center", frozen:true, formatter: function(val, obj, row, act){
+			return '<a href="${ctx}/sys/secAdmin/form?userCode='+row.userCode+'" class="btnList" data-title="${text("管理数据权限")}">'+(val||row.id)+'</a>';
+		}},
+		{header:'${text("用户昵称")}', name:'userName', index:'a.user_name', width:200, align:"center"},
+		{header:'${text("电子邮箱")}', name:'email', index:'a.email', width:200, align:"center"},
+		{header:'${text("手机号码")}', name:'mobile', index:'a.mobile', width:200, align:"center"},
+		{header:'${text("办公电话")}', name:'phone', index:'a.phone', width:200, align:"center"},
+		{header:'${text("更新时间")}', name:'updateDate', index:'a.update_date', width:200, align:"center"},
+		{header:'${text("状态")}', name:'status', index:'a.status', width:100, align:"center", formatter: function(val, obj, row, act){
+			return js.getDictLabel("#{@DictUtils.getDictListJson('sys_status')}", val, '未知', true);
+		}},
+		{header:'${text("操作")}', name:'actions', width:150, formatter: function(val, obj, row, act){
+			var actions = [];
+			//# if(hasPermi('sys:secAdmin:edit')){
+				actions.push('<a href="${ctx}/sys/secAdmin/form?userCode='+row.userCode+'" class="btnList" title="${text("管理数据权限")}"><i class="fa icon-note"></i></a>&nbsp;');
+				actions.push('<a href="${ctx}/sys/secAdmin/delete?userCode='+row.userCode+'" class="btnList" title="${text("取消二级管理员身份")}" data-confirm="${text("确认要取消该用户的二级管理员身份吗？")}"><i class="fa fa-trash-o"></i></a>&nbsp;');
+			//# }
+			return actions.join('');
+		}}
+	],
+	//# // 加载成功后执行事件
+	ajaxSuccess: function(data){
+		
+	}
+});
+$('#btnAddAdmin').click(function(){
+	if ('${userType}' == 'employee'){
+		$('#userSelectDiv').attr('data-url', '${ctx}/sys/empUser/empUserSelect');
+	}else{
+		$('#userSelectDiv').attr('data-url', '${ctx}/sys/user/userSelect?userType=${userType}');
+	}
+	$('#userSelectCode').val('');
+	$('#userSelectName').val('').click();
+});
+function listselectCallback(id, action, index, layero){
+	if (id == 'userSelect' && action == 'ok'){
+		if ($('#userSelectCode').val() != ''){
+			js.addTabPage(null, '二级管理员授权',
+					'${ctx}/sys/secAdmin/form?userCode='
+							+$('#userSelectCode').val());
+		}else{
+			js.showMessage('请选择需要设置为二级管理员的用户');
+		}
+	}
+}
+</script>

@@ -1,0 +1,74 @@
+<project name="MyProject" default="code-quality" basedir=".">
+
+    <!-- 设置路径 -->
+    <property name="build.dir" value="build"/>
+    <property name="reports.dir" value="${build.dir}/reports"/>
+    <property name="lib.dir" value="lib"/>
+
+    <!-- 定义 classpath -->
+    <path id="classpath">
+        <fileset dir="${lib.dir}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <!-- 初始化 -->
+    <target name="init">
+        <mkdir dir="${reports.dir}"/>
+    </target>
+
+    <!-- Checkstyle 代码规范检查 -->
+    <target name="checkstyle" depends="init">
+        <taskdef resource="checkstyletask.properties" classpathref="classpath"/>
+
+        <checkstyle config="checkstyle.xml" failOnViolation="false">
+            <fileset dir="${src.dir}" includes="**/*.java"/>
+            <formatter type="xml" toFile="${reports.dir}/checkstyle-result.xml"/>
+        </checkstyle>
+
+        <!-- 可选：生成 HTML 报告 -->
+        <xslt in="${reports.dir}/checkstyle-result.xml"
+              style="checkstyle-noframes-xsl.xsl"
+              out="${reports.dir}/checkstyle-report.html"/>
+    </target>
+
+    <!-- FindBugs 静态分析 -->
+    <target name="findbugs" depends="init">
+        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpathref="classpath"/>
+
+        <findbugs home="${lib.dir}/findbugs"
+                  output="xml:withMessages"
+                  outputFile="${reports.dir}/findbugs-result.xml"
+                  effort="max"
+                  reportLevel="low">
+            <sourcePath path="${src.dir}"/>
+            <class location="${src.dir}"/>
+        </findbugs>
+
+        <!-- 可选：生成 HTML 报告 -->
+        <xslt in="${reports.dir}/findbugs-result.xml"
+              style="${lib.dir}/findbugs/xslt/default.xsl"
+              out="${reports.dir}/findbugs-report.html"/>
+    </target>
+
+    <!-- PMD 代码扫描 -->
+    <target name="pmd" depends="init">
+        <taskdef name="pmd" classname="net.sourceforge.pmd.ant.PMDTask" classpathref="classpath"/>
+
+        <pmd rulesetfiles="rulesets/java/basic.xml,rulesets/java/braces.xml">
+            <formatter type="xml" toFile="${reports.dir}/pmd-result.xml"/>
+            <fileset dir="${src.dir}" includes="**/*.java"/>
+        </pmd>
+
+        <!-- 可选：生成 HTML 报告 -->
+        <xslt in="${reports.dir}/pmd-result.xml"
+              style="pmd-xslt-html.xsl"
+              out="${reports.dir}/pmd-report.html"/>
+    </target>
+
+    <!-- 综合任务 -->
+    <target name="code-quality" depends="checkstyle, findbugs, pmd">
+        <echo message="✅ 代码质量检查完成，报告在 ${reports.dir} 目录下"/>
+    </target>
+
+</project>
